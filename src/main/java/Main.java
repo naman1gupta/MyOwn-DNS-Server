@@ -15,6 +15,24 @@ public class Main {
         serverSocket.receive(packet);
         System.out.println("Received data");
 
+        // Parse incoming DNS packet
+        // Extract ID (first 2 bytes)
+        byte idByte1 = buf[0];
+        byte idByte2 = buf[1];
+        
+        // Extract flags from bytes 2-3
+        byte flags1 = buf[2];
+        byte flags2 = buf[3];
+        
+        // Extract OPCODE (bits 1-4 of first flags byte)
+        int opcode = (flags1 >> 3) & 0x0f;
+        
+        // Extract RD (bit 8 of first flags byte) 
+        int rd = flags1 & 0x01;
+        
+        // Determine RCODE: 0 if OPCODE is 0 (standard query), else 4 (not implemented)
+        int rcode = (opcode == 0) ? 0 : 4;
+
         // Build DNS response with header + question section + answer section
         // Domain name: \x0ccodecrafters\x02io\x00 = 1 + 12 + 1 + 2 + 1 = 17 bytes
         // Type: 2 bytes, Class: 2 bytes
@@ -23,12 +41,16 @@ public class Main {
         final byte[] response = new byte[12 + 21 + 31]; // 12 byte header + 21 byte question + 31 byte answer
         
         // Header section (12 bytes)
-        // Transaction ID: 1234 (0x04D2)
-        response[0] = 0x04;
-        response[1] = (byte) 0xD2;
-        // Flags: QR=1 (response), all others 0 => 0x8000
-        response[2] = (byte) 0x80;
-        response[3] = 0x00;
+        // Transaction ID: Echo back from request
+        response[0] = idByte1;
+        response[1] = idByte2;
+        
+        // Flags: QR=1, OPCODE from request, AA=0, TC=0, RD from request
+        // First flags byte: QR(1) + OPCODE(4) + AA(1) + TC(1) + RD(1) = 1xxxxxx0 + RD
+        response[2] = (byte) (0x80 | (opcode << 3) | rd);
+        
+        // Second flags byte: RA(1) + Z(3) + RCODE(4) = 0000xxxx
+        response[3] = (byte) rcode;
         // QDCOUNT: 1 question
         response[4] = 0x00;
         response[5] = 0x01;
