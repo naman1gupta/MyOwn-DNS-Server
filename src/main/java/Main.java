@@ -14,9 +14,18 @@ public class Main {
         final DatagramPacket packet = new DatagramPacket(buf, buf.length);
         serverSocket.receive(packet);
         System.out.println("Received data");
-    
-        final byte[] bufResponse = new byte[512];
-        final DatagramPacket packetResponse = new DatagramPacket(bufResponse, bufResponse.length, packet.getSocketAddress());
+
+        // Build a 12-byte DNS header response
+        final byte[] response = new byte[12];
+        // Transaction ID: echo back the ID from the request (first 2 bytes)
+        response[0] = buf[0];
+        response[1] = buf[1];
+        // Flags: QR=1 (response), all others 0 => 0x8000
+        response[2] = (byte) 0x80;
+        response[3] = 0x00;
+        // QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT are already 0 by default
+
+        final DatagramPacket packetResponse = new DatagramPacket(response, response.length, packet.getSocketAddress());
         serverSocket.send(packetResponse);
       }
     } catch (IOException e) {
