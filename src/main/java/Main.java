@@ -15,11 +15,12 @@ public class Main {
         serverSocket.receive(packet);
         System.out.println("Received data");
 
-        // Build DNS response with header + question section
+        // Build DNS response with header + question section + answer section
         // Domain name: \x0ccodecrafters\x02io\x00 = 1 + 12 + 1 + 2 + 1 = 17 bytes
         // Type: 2 bytes, Class: 2 bytes
         // Total question section: 17 + 2 + 2 = 21 bytes
-        final byte[] response = new byte[12 + 21]; // 12 byte header + 21 byte question
+        // Answer section: Name (17) + Type (2) + Class (2) + TTL (4) + Length (2) + Data (4) = 31 bytes
+        final byte[] response = new byte[12 + 21 + 31]; // 12 byte header + 21 byte question + 31 byte answer
         
         // Header section (12 bytes)
         // Transaction ID: 1234 (0x04D2)
@@ -31,9 +32,12 @@ public class Main {
         // QDCOUNT: 1 question
         response[4] = 0x00;
         response[5] = 0x01;
-        // ANCOUNT, NSCOUNT, ARCOUNT are already 0 by default
+        // ANCOUNT: 1 answer
+        response[6] = 0x00;
+        response[7] = 0x01;
+        // NSCOUNT, ARCOUNT are already 0 by default
 
-        // Question section (19 bytes)
+        // Question section (21 bytes)
         int offset = 12;
         // Domain name: codecrafters.io encoded as labels
         // \x0ccodecrafters
@@ -64,6 +68,62 @@ public class Main {
         response[offset] = 0x00;
         offset++;
         response[offset] = 0x01;
+        offset++;
+
+        // Answer section (31 bytes)
+        // Name: codecrafters.io encoded as labels (same as question)
+        // \x0ccodecrafters
+        response[offset] = 0x0c; // length of "codecrafters"
+        offset++;
+        System.arraycopy(codecrafters, 0, response, offset, codecrafters.length);
+        offset += codecrafters.length;
+        
+        // \x02io
+        response[offset] = 0x02; // length of "io"
+        offset++;
+        System.arraycopy(io, 0, response, offset, io.length);
+        offset += io.length;
+        
+        // Null terminator
+        response[offset] = 0x00;
+        offset++;
+        
+        // Type: 1 (A record) - 2 bytes big-endian
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x01;
+        offset++;
+        
+        // Class: 1 (IN) - 2 bytes big-endian
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x01;
+        offset++;
+        
+        // TTL: 60 seconds - 4 bytes big-endian
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x3c; // 60 in hex
+        offset++;
+        
+        // Length: 4 bytes (length of IP address) - 2 bytes big-endian
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x04;
+        offset++;
+        
+        // Data: IP address 8.8.8.8 - 4 bytes
+        response[offset] = 0x08;
+        offset++;
+        response[offset] = 0x08;
+        offset++;
+        response[offset] = 0x08;
+        offset++;
+        response[offset] = 0x08;
 
         final DatagramPacket packetResponse = new DatagramPacket(response, response.length, packet.getSocketAddress());
         serverSocket.send(packetResponse);
