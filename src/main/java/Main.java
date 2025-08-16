@@ -37,27 +37,33 @@ public class Main {
         int offset = 12;
         // Domain name: codecrafters.io encoded as labels
         // \x0ccodecrafters
-        response[offset++] = 0x0c; // length of "codecrafters"
+        response[offset] = 0x0c; // length of "codecrafters"
+        offset++;
         byte[] codecrafters = "codecrafters".getBytes();
         System.arraycopy(codecrafters, 0, response, offset, codecrafters.length);
         offset += codecrafters.length;
         
         // \x02io
-        response[offset++] = 0x02; // length of "io"
+        response[offset] = 0x02; // length of "io"
+        offset++;
         byte[] io = "io".getBytes();
         System.arraycopy(io, 0, response, offset, io.length);
         offset += io.length;
         
         // Null terminator
-        response[offset++] = 0x00;
+        response[offset] = 0x00;
+        offset++;
         
         // Type: 1 (A record) - 2 bytes big-endian
-        response[offset++] = 0x00;
-        response[offset++] = 0x01;
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x01;
+        offset++;
         
         // Class: 1 (IN) - 2 bytes big-endian
-        response[offset++] = 0x00;
-        response[offset++] = 0x01;
+        response[offset] = 0x00;
+        offset++;
+        response[offset] = 0x01;
 
         final DatagramPacket packetResponse = new DatagramPacket(response, response.length, packet.getSocketAddress());
         serverSocket.send(packetResponse);
