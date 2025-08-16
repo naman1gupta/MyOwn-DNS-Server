@@ -114,7 +114,8 @@ public class Main {
 
         byte[] response;
         
-        if (forwardingMode) {
+        if (forwardingMode && rcode == 0) {
+          // Only forward standard queries (OPCODE=0), otherwise handle locally
           response = handleForwarding(questions, idByte1, idByte2, opcode, rd, resolverAddress, resolverPort);
         } else {
           response = handleLocalResponse(questions, idByte1, idByte2, opcode, rd, rcode, qdcount);
