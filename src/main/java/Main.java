@@ -32,13 +32,32 @@ public class Main {
         
         // Determine RCODE: 0 if OPCODE is 0 (standard query), else 4 (not implemented)
         int rcode = (opcode == 0) ? 0 : 4;
+        
+        // Parse question section to extract domain name
+        // Question section starts at byte 12 (after header)
+        int questionOffset = 12;
+        int domainStartOffset = questionOffset;
+        
+        // Find the end of the domain name (marked by null byte)
+        int domainEndOffset = questionOffset;
+        while (buf[domainEndOffset] != 0) {
+            domainEndOffset++;
+        }
+        domainEndOffset++; // Include the null terminator
+        
+        // Calculate domain name length (including null terminator)
+        int domainLength = domainEndOffset - domainStartOffset;
+        
+        // Extract the domain name bytes
+        byte[] domainName = new byte[domainLength];
+        System.arraycopy(buf, domainStartOffset, domainName, 0, domainLength);
 
         // Build DNS response with header + question section + answer section
-        // Domain name: \x0ccodecrafters\x02io\x00 = 1 + 12 + 1 + 2 + 1 = 17 bytes
-        // Type: 2 bytes, Class: 2 bytes
-        // Total question section: 17 + 2 + 2 = 21 bytes
-        // Answer section: Name (17) + Type (2) + Class (2) + TTL (4) + Length (2) + Data (4) = 31 bytes
-        final byte[] response = new byte[12 + 21 + 31]; // 12 byte header + 21 byte question + 31 byte answer
+        // Question section: domain name + type (2) + class (2)
+        int questionSectionSize = domainLength + 4;
+        // Answer section: domain name + type (2) + class (2) + TTL (4) + length (2) + data (4)
+        int answerSectionSize = domainLength + 14;
+        final byte[] response = new byte[12 + questionSectionSize + answerSectionSize];
         
         // Header section (12 bytes)
         // Transaction ID: Echo back from request
@@ -59,26 +78,11 @@ public class Main {
         response[7] = 0x01;
         // NSCOUNT, ARCOUNT are already 0 by default
 
-        // Question section (21 bytes)
+        // Question section
         int offset = 12;
-        // Domain name: codecrafters.io encoded as labels
-        // \x0ccodecrafters
-        response[offset] = 0x0c; // length of "codecrafters"
-        offset++;
-        byte[] codecrafters = "codecrafters".getBytes();
-        System.arraycopy(codecrafters, 0, response, offset, codecrafters.length);
-        offset += codecrafters.length;
-        
-        // \x02io
-        response[offset] = 0x02; // length of "io"
-        offset++;
-        byte[] io = "io".getBytes();
-        System.arraycopy(io, 0, response, offset, io.length);
-        offset += io.length;
-        
-        // Null terminator
-        response[offset] = 0x00;
-        offset++;
+        // Domain name: copy from parsed domain
+        System.arraycopy(domainName, 0, response, offset, domainLength);
+        offset += domainLength;
         
         // Type: 1 (A record) - 2 bytes big-endian
         response[offset] = 0x00;
@@ -92,23 +96,10 @@ public class Main {
         response[offset] = 0x01;
         offset++;
 
-        // Answer section (31 bytes)
-        // Name: codecrafters.io encoded as labels (same as question)
-        // \x0ccodecrafters
-        response[offset] = 0x0c; // length of "codecrafters"
-        offset++;
-        System.arraycopy(codecrafters, 0, response, offset, codecrafters.length);
-        offset += codecrafters.length;
-        
-        // \x02io
-        response[offset] = 0x02; // length of "io"
-        offset++;
-        System.arraycopy(io, 0, response, offset, io.length);
-        offset += io.length;
-        
-        // Null terminator
-        response[offset] = 0x00;
-        offset++;
+        // Answer section
+        // Name: same domain name as question
+        System.arraycopy(domainName, 0, response, offset, domainLength);
+        offset += domainLength;
         
         // Type: 1 (A record) - 2 bytes big-endian
         response[offset] = 0x00;
