@@ -16,10 +16,10 @@ public class Main {
         System.out.println("Received data");
 
         // Build DNS response with header + question section
-        // Domain name: \x0ccodecrafters\x02io\x00 = 12 + 2 + 1 = 15 bytes
+        // Domain name: \x0ccodecrafters\x02io\x00 = 1 + 12 + 1 + 2 + 1 = 17 bytes
         // Type: 2 bytes, Class: 2 bytes
-        // Total question section: 19 bytes
-        final byte[] response = new byte[12 + 19]; // 12 byte header + 19 byte question
+        // Total question section: 17 + 2 + 2 = 21 bytes
+        final byte[] response = new byte[12 + 21]; // 12 byte header + 21 byte question
         
         // Header section (12 bytes)
         // Transaction ID: 1234 (0x04D2)
